@@ -1,534 +1,326 @@
-📘 Personal Finance Advisor Bot — Comprehensive Technical Documentation
-1. System Overview & Architecture
+# PERSONAL FINANCE ADVISOR BOT
+## Project Documentation
 
-Personal Finance Advisor Bot is a production-grade, full-stack financial management and advisory platform. The system is engineered to provide end-to-end personal wealth tracking, automated financial health assessment, interactive data visualization, budget enforcement, and context-aware AI advisory capabilities.
+**Project Title:** Personal Finance Advisor Bot  
+**Project Type:** AI-Based Web Application  
+**GitHub Repository:** https://github.com/ayushchavan0402-cmyk/Personal-Finance-advisor-bot
 
-1.1 Architecture Diagram
-2. Database Schema & Data Models
+---
 
-The persistence layer is implemented via SQLAlchemy ORM with foreign key constraints, cascade rules, indices, and unique composite keys.
+## 1. Introduction
 
-2.1 Entity Relationship (ER) Diagram
-2.2 Model Specifications
-User (backend/models/user.py)
-id (Integer, PK): Unique user identifier.
-name (String(120), Not Null): Full user name.
-email (String(120), Unique, Not Null, Indexed): Lowercased user login email.
-password_hash (String(255), Not Null): Cryptographic salted hash generated via werkzeug.security.generate_password_hash.
-currency (String(10), Default '₹'): Preferred currency symbol (e.g. ₹, $, €, £).
-created_at (DateTime): Registration UTC timestamp.
-Relationships: One-to-many relationship with all transactional entities (cascade="all, delete-orphan").
-Income (backend/models/income.py)
-id (Integer, PK): Unique income entry ID.
-user_id (Integer, FK users.id, Indexed): Tenant isolation key.
-amount (Float, Not Null): Numeric income value.
-source (String(80), Not Null): Income stream (e.g., Salary, Freelancing, Business, Scholarship, Investment, Other).
-date (Date, Not Null): Date when funds were received.
-description (String(255)): Transaction memo/context.
-Expense (backend/models/expense.py)
-id (Integer, PK): Unique expense entry ID.
-user_id (Integer, FK users.id, Indexed): Tenant isolation key.
-amount (Float, Not Null): Numeric expense value.
-category (String(80), Not Null): Expense category (Food, Transportation, Education, Shopping, Entertainment, Rent, Bills, Healthcare, Travel, Other).
-date (Date, Not Null): Date of expenditure.
-description (String(255)): Context or store/merchant memo.
-Budget (backend/models/budget.py)
-id (Integer, PK): Unique budget rule ID.
-user_id (Integer, FK users.id, Indexed): User identifier.
-category (String(80), Not Null): Target category.
-amount (Float, Not Null): Monthly ceiling limit.
-month (Integer, 1-12): Calendar month.
-year (Integer): Calendar year (e.g., 2026).
-Composite Unique Constraint: uq_user_cat_month_year(user_id, category, month, year) prevents duplicate budget allocations for identical categories within the same monthly cycle.
-SavingsGoal (backend/models/savings_goal.py)
-id (Integer, PK): Unique savings target ID.
-user_id (Integer, FK users.id, Indexed): User identifier.
-name (String(120), Not Null): Milestone title (e.g. "MacBook Pro", "Emergency Fund").
-target_amount (Float, Not Null): Target savings ceiling.
-current_amount (Float, Default 0.0): Accumulated balance.
-target_date (Date, Nullable): Estimated completion deadline.
-Computed Properties: Calculates progress_percent (
-(
-current
-/
-target
-)
-×
-100
-(current/target)×100) and remaining_amount (
-max
-⁡
-(
-0
-,
-target
-−
-current
-)
-max(0,target−current)).
-FinancialInsight (backend/models/financial_insight.py)
-id (Integer, PK): Unique insight ID.
-user_id (Integer, FK users.id, Indexed): User identifier.
-insight (Text, Not Null): AI-generated insight text.
-type (String(50)): Type indicator (warning, alert, achievement, tip, info).
-3. AI Financial Engine & Intelligence Architecture
+The Personal Finance Advisor Bot is an AI-assisted web application designed to help users manage their personal finances efficiently. It helps users track income and expenses, prepare budgets, analyze spending patterns, identify potential savings opportunities, and receive financial planning suggestions.
 
-The AI module (backend/services/ai_service.py) employs a Hybrid Intelligence Architecture that merges deterministic heuristic rule engines with generative Large Language Models.
+The application uses Python and Flask for its backend, SQLAlchemy for database operations, and SQLite for local data storage. It can integrate with Google's Gemini AI to generate financial insights. The application also supports rule-based fallback logic for selected features when AI services are unavailable.
 
-3.1 Financial Calculation Heuristics
+## 2. Problem Statement
 
-Savings Rate Metric: 
-Savings Rate (%)
-=
-(
-max
-⁡
-(
-0
-,
-Total Income
-−
-Total Expenses
-)
-Total Income
-)
-×
-100
-Savings Rate (%)=(
-Total Income
-max(0,Total Income−Total Expenses)
-	​
+Managing personal finances can be challenging because people often struggle to track daily expenses, control unnecessary spending, plan monthly budgets, and achieve savings goals.
 
-)×100
+Traditional manual tracking methods can be time-consuming and make it difficult to identify spending patterns.
 
-≥
-20
-%
-≥20%: Classified as Healthy / Optimal Financial Discipline.
-<
-10
-%
-<10%: Triggers an automated Low Savings Warning.
+Therefore, a digital solution is needed to organize financial information, simplify budgeting, and provide useful insights that help users make informed financial decisions.
 
-Budget Status Matrix: 
-Utilization (%)
-=
-(
-Spent Amount
-Allocated Budget
-)
-×
-100
-Utilization (%)=(
-Allocated Budget
-Spent Amount
-	​
+## 3. Objectives
 
-)×100
+The main objectives of the Personal Finance Advisor Bot are:
 
-Utilization
-≥
-100
-%
-Utilization≥100%: Status = Exceeded (Status badge danger, triggers overspending alarm).
-80
-%
-≤
-Utilization
-<
-100
-%
-80%≤Utilization<100%: Status = Warning (Status badge warning, cautionary notification).
-Utilization
-<
-80
-%
-Utilization<80%: Status = Healthy (Status badge success).
+1. To track users' income and expenses.
+2. To categorize expenses for easier financial analysis.
+3. To generate personalized budget suggestions.
+4. To identify spending patterns and possible savings opportunities.
+5. To support savings goals and financial planning.
+6. To generate monthly financial summaries and reports.
+7. To use AI-assisted analysis to provide financial guidance.
+8. To maintain financial records using a database.
+9. To provide fallback functionality when AI services are unavailable.
 
-50/30/20 Budget Auto-Generator Formula:
+## 4. Scope of the Project
 
-Needs (50%):
-Rent & Housing: 
-25
-%
-25% of income
-Food & Groceries: 
-15
-%
-15% of income
-Utilities & Bills: 
-8
-%
-8% of income
-Healthcare: 
-2
-%
-2% of income
-Wants (30%):
-Shopping: 
-10
-%
-10% of income
-Entertainment: 
-8
-%
-8% of income
-Transportation: 
-7
-%
-7% of income
-Education/Upskilling: 
-5
-%
-5% of income
-Savings (20%): Retained for emergency buffer and savings goals.
+The application focuses on personal financial organization and budgeting. Users can enter their income, expenses, and financial goals to receive a summarized view of their financial situation.
 
-Month-over-Month (MoM) Anomaly Detection: 
-Δ
-%
-=
-(
-Current Month Spent
-−
-Previous Month Spent
-Previous Month Spent
-)
-×
-100
-Δ%=(
-Previous Month Spent
-Current Month Spent−Previous Month Spent
-	​
+The project can be used by students, employees, and individuals who want to improve their budgeting habits.
 
-)×100
+The current project is intended as a financial planning aid. Integration with actual bank accounts, advanced investment analysis, and other financial services would require additional development.
 
-If 
-Δ
-%
-≥
-15
-%
-Δ%≥15% and 
-Current Month Spent
->
-1
-,
-000
-Current Month Spent>1,000, an automated advisory alert highlights the specific category surge (e.g. "Your Food expenses jumped by 19% compared with last month").
-3.2 Supported Conversational Intents
-Intent Trigger	Handled Question Example	Output Strategy
-Monthly Spending	"How much did I spend this month?"	Exact outflow breakdown, top category share, cash on hand.
-Top Outflow Driver	"Where am I spending the most?"	Ranks top 5 spending categories with percentage share and optimization tips.
-Target Savings Plan	"How can I save ₹5,000 this month?"	Identifies discretionary categories and suggests specific proportional cuts.
-Expense Trend / Spikes	"Why are my expenses increasing?"	Compares current month with previous month to detect anomalies.
-50/30/20 Budget Blueprint	"Give me a budget for next month."	Generates customized category limits based on recorded earnings.
-Overspending Assessment	"Am I overspending?"	Inspects active category budgets, highlighting exceeded thresholds.
-Savings Capacity Calculation	"How much can I save based on my income?"	Projects 6-month, 1-year, and 3-year compound savings milestones.
-Executive Monthly Summary	"Give me a monthly financial summary."	Renders a clean Markdown table of inflows, outflows, and financial health status.
-4. Complete REST API Reference
+## 5. Main Features
 
-All API routes return a standardized JSON envelope:
+### 5.1 Income Tracking
+Users can enter their income to establish a basis for budget planning.
 
-json
-{
-  "success": true,
-  "message": "Human-readable status",
-  "data": { ... },
-  "error": null
-}
-4.1 Authentication Endpoints (/api/auth)
-POST /api/auth/register
-Description: Registers a new user.
-Request Body:
-json
-{
-  "name": "Jane Doe",
-  "email": "jane@example.com",
-  "password": "securepassword123",
-  "seed_demo": true
-}
-Responses:
-201 Created: Returns user object and JWT bearer token.
-400 Bad Request: Validation failure (name length, invalid email, password < 6 chars).
-409 Conflict: Email already exists.
-POST /api/auth/login
-Description: Authenticates user credentials.
-Request Body:
-json
-{
-  "email": "jane@example.com",
-  "password": "securepassword123"
-}
-Responses:
-200 OK: Returns JWT access token and user metadata.
-401 Unauthorized: Invalid credentials.
-GET /api/auth/me
-Headers: Authorization: Bearer <token>
-Responses: 200 OK with user details.
-POST /api/auth/logout
-Responses: 200 OK.
-4.2 Dashboard Endpoint (/api/dashboard)
-GET /api/dashboard?month=9&year=2026
-Headers: Authorization: Bearer <token>
-Query Params: month (optional, default current), year (optional, default current).
-Response Payload (200 OK):
-json
-{
-  "success": true,
-  "data": {
-    "user": { "id": 1, "name": "Alex Morgan", "currency": "₹" },
-    "period": { "month": 9, "year": 2026, "month_name": "September" },
-    "summary": {
-      "monthly_income": 51000.0,
-      "total_expenses": 31500.0,
-      "current_balance": 19500.0,
-      "total_savings": 19500.0,
-      "savings_rate": 38.2,
-      "budget_used_percentage": 78.8,
-      "savings_goal_progress": 44.2
-    },
-    "charts": {
-      "history": [
-        { "label": "Apr 2026", "income": 40000.0, "expense": 28000.0, "savings": 12000.0 },
-        { "label": "Sep 2026", "income": 51000.0, "expense": 31500.0, "savings": 19500.0 }
-      ],
-      "categories": [
-        { "category": "Rent", "amount": 10000.0, "percentage": 31.7 },
-        { "category": "Food", "amount": 5000.0, "percentage": 15.9 }
-      ],
-      "budget_utilization": [
-        { "category": "Food", "budget_amount": 4500.0, "spent_amount": 5000.0, "is_exceeded": true }
-      ]
-    },
-    "alerts": [
-      { "type": "danger", "title": "Budget Exceeded: Food", "message": "⚠️ You have exceeded your Food budget by ₹500.00." }
-    ],
-    "insights": [
-      { "type": "warning", "title": "Primary Spending Driver", "message": "Your highest expense category in September was Rent..." }
-    ],
-    "recent_transactions": [ ... ]
-  }
-}
-4.3 Income Endpoints (/api/income)
-GET /api/income:
-Parameters: search, source, start_date, end_date.
-Returns array of income records, total aggregate sum, and count.
-POST /api/income:
-Body: { "amount": 45000, "source": "Salary", "date": "2026-09-01", "description": "Tech Consultant" }
-GET /api/income/<id>: Retrieves single entry.
-PUT /api/income/<id>: Updates fields of specified income.
-DELETE /api/income/<id>: Removes entry.
-4.4 Expense Endpoints (/api/expenses)
-GET /api/expenses:
-Parameters: search, category, start_date, end_date.
-Returns array of expense records, total amount, and valid category list.
-POST /api/expenses:
-Body: { "amount": 2800, "category": "Food", "date": "2026-09-10", "description": "Supermarket" }
-GET /api/expenses/<id>: Retrieves expense entry.
-PUT /api/expenses/<id>: Modifies existing expense.
-DELETE /api/expenses/<id>: Deletes expense.
-4.5 Budget Endpoints (/api/budgets)
-GET /api/budgets?month=9&year=2026:
-Returns category budget comparison, actual spending per category, remaining balances, and threshold flags.
-POST /api/budgets:
-Body: { "category": "Food", "amount": 5000, "month": 9, "year": 2026 }
-Creates or updates category ceiling.
-POST /api/budgets/auto-generate:
-Body: { "month": 9, "year": 2026 }
-Generates balanced 50/30/20 budget allocations using recorded income.
-PUT /api/budgets/<id>: Modifies budget amount or category.
-DELETE /api/budgets/<id>: Removes budget rule.
-4.6 Savings Goals Endpoints (/api/savings-goals)
-GET /api/savings-goals:
-Returns all goals, progress percentage, total accumulated funds, and target sum.
-POST /api/savings-goals:
-Body: { "name": "Emergency Fund", "target_amount": 100000, "current_amount": 35000, "target_date": "2026-12-31" }
-POST /api/savings-goals/<id>/deposit:
-Body: { "amount": 5000 }
-Increments goal current balance.
-PUT /api/savings-goals/<id>: Modifies goal parameters.
-DELETE /api/savings-goals/<id>: Deletes goal.
-4.7 Transactions & Export (/api/transactions)
-GET /api/transactions:
-Parameters: type (all | income | expense), search, category, start_date, end_date, sort_by (date | amount), sort_order (asc | desc), page (default 1), per_page (default 10).
-Returns paginated unified ledger and filtered totals.
-GET /api/transactions/export:
-Downloads full financial ledger formatted as standard comma-separated values (text/csv).
-4.8 Monthly Reports (/api/reports/monthly)
-GET /api/reports/monthly?month=9&year=2026:
-Generates an executive analytical report including:
-Period metadata and cash flow summary
-Month-over-month growth comparisons for income and expenses
-Expense category percentage shares
-Category shift variance (spikes and drops)
-Automated executive narrative recommendations
-4.9 AI Advisor (/api/ai)
-POST /api/ai/chat:
-Body: { "message": "How can I save ₹5,000 this month?" }
-Passes real user records to the AI service and returns markdown answer with required disclaimer.
-GET /api/ai/insights:
-Returns recent persisted automated insight entries.
-4.10 User Profile & Data Controls (/api/user)
-PUT /api/user/profile: Updates display name and preferred currency symbol.
-PUT /api/user/password: Verifies current password and updates to new password.
-POST /api/user/seed-demo: Loads realistic sample financial records.
-POST /api/user/reset-data: Clears all financial entries for the active user.
-5. Frontend Architecture & UI/UX Design System
+### 5.2 Expense Management
+Users can record expenses and organize them into categories such as rent, food, transportation, utilities, entertainment, and dining.
 
-The client side is implemented in vanilla ECMAScript (ES6+) with zero heavyweight bundler dependencies, ensuring fast page load times and maintainability.
+### 5.3 Budget Generation
+The application processes entered financial information to generate a suggested budget.
 
-5.1 Modular Frontend Structure
-frontend/
-├── index.html           # Landing Showcase Page
-├── login.html           # Authentication Page with Quick Demo Fill
-├── register.html        # Registration with Seed Toggle
-├── dashboard.html       # Primary Financial Control Center
-├── income.html          # Income CRUD & Filter Module
-├── expenses.html        # Expense CRUD & Category Module
-├── budgets.html         # 50/30/20 Budgeting & Visual Indicators
-├── savings.html         # Milestone Tracking & Deposits
-├── transactions.html    # Unified Ledger & CSV Export
-├── advisor.html         # Interactive AI Chatroom & Chips
-├── reports.html         # Executive Printable Report
-├── profile.html         # User Preferences & Demo Tools
-├── css/
-│   └── style.css        # Custom Properties, Glassmorphism, Responsive Grid
-└── js/
-    ├── api.js           # Fetch wrapper, Token Handler, Toast Alerts
-    ├── auth.js          # Authentication form handlers
-    ├── theme.js         # Dark/Light Theme Controller
-    ├── layout.js        # Global Sidebar, Header, Dynamic Alerts
-    ├── dashboard.js     # Chart.js instances & KPI rendering
-    ├── income.js        # Income controller with search debounce
-    ├── expenses.js      # Expense controller with category breakdown
-    ├── budgets.js       # Budget progress meters & auto-generation
-    ├── savings.js       # Savings goals countdown & deposit modal
-    ├── transactions.js  # Ledger pagination & CSV downloader
-    ├── advisor.js       # AI Chatroom & Markdown Parser
-    ├── reports.js       # Report charts & MoM variance table
-    └── profile.js       # Settings & Seeder actions
-5.2 Design Tokens & Themes
+### 5.4 Spending Analysis
+The application helps users understand how their money is distributed across different expense categories.
 
-The design system is governed by CSS custom properties in frontend/css/style.css:
+### 5.5 Savings Suggestions
+The application can provide suggestions for identifying unnecessary expenses and improving savings habits.
 
-css
-:root {
-  --bg-primary: #f8fafc;
-  --bg-secondary: #ffffff;
-  --bg-card: #ffffff;
-  --border-color: #e2e8f0;
-  --text-main: #0f172a;
-  --text-muted: #64748b;
-  --primary: #4f46e5;       /* Indigo 600 */
-  --success: #10b981;       /* Emerald 500 */
-  --warning: #f59e0b;       /* Amber 500 */
-  --danger: #ef4444;        /* Rose 500 */
-  --info: #0ea5e9;          /* Sky 500 */
-}
-[data-theme="dark"] {
-  --bg-primary: #0b0f19;    /* Midnight Navy */
-  --bg-secondary: #111827;  /* Deep Slate */
-  --bg-card: #141e33;       /* Elevated Card Dark */
-  --border-color: #1e293b;
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --primary: #6366f1;       /* Light Indigo */
-}
-6. Security & Multi-Tenancy Architecture
+### 5.6 Goal-Based Financial Planning
+Users can specify financial goals, such as building an emergency fund, to provide context for financial analysis.
 
-Cryptographic Password Storage: Passwords undergo salted PBKDF2 hashing via werkzeug.security. Plaintext passwords are never logged or stored.
+### 5.7 Monthly Reports
+The application can generate a financial summary to help users review their income, expenses, and savings.
 
-Row-Level Tenant Isolation: Every database query filters strictly by user_id = current_user_id parsed from the validated JWT token:
+### 5.8 AI-Assisted Guidance
+When properly configured, Gemini AI can help generate responses and financial insights based on the information provided.
 
-python
-Income.query.filter_by(user_id=user_id).all()
+### 5.9 Rule-Based Fallback
+Selected workflows can use local rule-based logic when AI functionality is unavailable or not configured.
 
-Users cannot query, modify, or delete another user's records.
+### 5.10 Optional Google Sheets Integration
+The project includes support for optional Google Sheets synchronization through a Google Apps Script web application.
 
-Protection Against SQL Injections: All database operations utilize SQLAlchemy's abstract syntax trees and parameterized bindings.
+## 6. Technology Stack
 
-Session Lifetime & Revocation: JWT access tokens are issued with a 7-day expiration time (JWT_ACCESS_TOKEN_EXPIRES). Expired tokens result in a clean client-side logout and redirect.
+| Technology | Purpose |
+|---|---|
+| Python | Main programming language |
+| Flask | Backend web framework |
+| SQLAlchemy | Database operations and object-relational mapping |
+| SQLite | Local database storage |
+| Google Gemini AI | AI-assisted financial insights |
+| HTML | Web page structure |
+| CSS | User interface styling |
+| JavaScript | Interactive frontend functionality |
+| Fetch API | Communication between frontend and backend |
+| Google Apps Script | Optional Google Sheets integration |
+| Git and GitHub | Version control and source code hosting |
 
-7. Setup, Deployment & Operations
-7.1 Local Development Setup
+## 7. System Architecture
 
-Clone / Navigate to Repository:
+The application follows a client-server architecture.
 
-powershell
-cd "c:\Users\VM TECH STORE\OneDrive\Desktop\AI ADVISOR"
+**Frontend:** The browser-based interface collects financial information and displays results.
 
-Activate Virtual Environment:
+**Backend:** The Flask application receives requests, validates and processes inputs, and coordinates the application's functionality.
 
-powershell
-.\venv\Scripts\Activate.ps1
+**Database:** SQLAlchemy communicates with SQLite to manage stored data.
 
-Install Dependencies:
+**AI Service:** Gemini AI can be used to generate financial analysis and suggestions when configured.
 
-powershell
-pip install -r requirements.txt
+**Fallback System:** Rule-based logic supports selected workflows when AI services are unavailable.
 
-Configure Environment (.env):
+**Optional Cloud Integration:** Google Apps Script can connect the application to Google Sheets when configured.
 
-ini
-FLASK_APP=backend/app.py
-FLASK_ENV=development
-SECRET_KEY=your-secure-random-secret-key
-JWT_SECRET_KEY=your-secure-random-jwt-key
-DATABASE_URL=sqlite:///database/finance_advisor.db
-PORT=5000
+### System Flow
 
-Start Flask Server:
+User → Web Interface → Flask Backend → Input Processing → Database and AI/Fallback Logic → Results Returned to User
 
-powershell
-.\venv\Scripts\python backend/app.py
+## 8. Repository Structure
 
-Access at http://localhost:5000.
+The repository documentation describes the following important files. The exact structure should be verified against the latest version of the GitHub repository.
 
-7.2 Production Deployment (Linux / Docker / Gunicorn)
+- `app.py` — Main Flask application.
+- `requirements.txt` — Python dependencies.
+- `.env.example` — Example environment configuration.
+- `.gitignore` — Specifies files Git should ignore.
+- `run_public.py` — Optional public-tunnel runner.
+- `google_apps_script.gs` — Google Sheets integration template.
+- `index.html` — HTML interface or entry page.
+- `README.md` — Project overview and setup instructions.
+- `QUICKSTART.md` — Quick-start guide.
+- `IMPLEMENTATION_SUMMARY.md` — Implementation notes.
+- `DEPLOYMENT_CHECKLIST.md` — Deployment considerations.
+- `PROJECT_DELIVERY_SUMMARY.md` — Project delivery summary.
 
-For production deployment on Linux / AWS / DigitalOcean:
+The README also describes frontend template and static asset directories. Their current locations should be checked in the repository before using them.
 
-Database Switch (PostgreSQL): In .env:
+## 9. Installation and Setup
 
-ini
-DATABASE_URL=postgresql://dbuser:securepass@localhost:5432/finance_db
+### Prerequisites
 
-(SQLAlchemy automatically creates all tables on initial startup).
+- Python 3.8 or later, subject to dependency compatibility.
+- Visual Studio Code or another code editor.
+- Git, or the ability to download the repository.
+- A modern web browser.
+- An API key if Gemini AI functionality is required.
 
-Run with Production WSGI Server (Gunicorn):
+### Step 1: Clone the Repository
 
-bash
-pip install gunicorn psycopg2-binary
-gunicorn -w 4 -b 0.0.0.0:5000 "backend.app:create_app()"
+Open the terminal and execute:
 
-Reverse Proxy Configuration (Nginx):
+`git clone https://github.com/ayushchavan0402-cmyk/Personal-Finance-advisor-bot.git`
 
-nginx
-server {
-    listen 80;
-    server_name finance.yourdomain.com;
-    location / {
-        proxy_pass http://127.0.0.1:5000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    }
-}
-8. Automated Test Suite Execution
+Navigate into the project folder:
 
-A comprehensive test suite verifies authentication, CRUD workflows, AI queries, and CSV exports:
+`cd Personal-Finance-advisor-bot`
 
-powershell
-.\venv\Scripts\python -m unittest backend/tests/test_app.py
-Verified Test Cases:
-test_01_auth_flow: Registration, password hashing, and JWT token exchange.
-test_02_income_and_expense_crud: Ingestion, retrieval, filtering, and deletion.
-test_03_budget_and_savings_flow: Budget analysis calculation and savings goal fund deposits.
-test_04_ai_advisor_chat: Natural language query analysis and disclaimer verification.
-test_05_reports_and_transactions_csv: MoM analytical reports and CSV export format.
-9. Default Demo Account Reference
-Key	Value
-Email	demo@financeadvisor.com
-Password	password123
-Profile Name	Alex Morgan
-Pre-loaded Data	3 Incomes (₹51,000), 8 Current Month Expenses (₹31,500), 7 Prior Month Expenses, 8 Category Budgets, 3 Savings Goals, 3 AI Insights
+### Step 2: Create a Virtual Environment
+
+Run:
+
+`python -m venv venv`
+
+Activate it in Windows PowerShell:
+
+`.\venv\Scripts\Activate.ps1`
+
+Alternatively, use Command Prompt:
+
+`venv\Scripts\activate.bat`
+
+### Step 3: Install Dependencies
+
+Run:
+
+`python -m pip install --upgrade pip`
+
+Then install the project dependencies:
+
+`pip install -r requirements.txt`
+
+### Step 4: Configure Environment Variables
+
+Use `.env.example` as a reference for the required configuration.
+
+Create a local `.env` file if required by the application. Add the relevant API key and optional integration settings according to the project's code.
+
+Never upload API keys or other secrets to GitHub.
+
+### Step 5: Run the Application
+
+Execute:
+
+`python app.py`
+
+Open the local URL displayed by Flask. The README identifies `http://127.0.0.1:5000` as the expected local address.
+
+## 10. Configuration
+
+The project documentation describes the following configuration options:
+
+- **Gemini API key:** Enables AI-assisted functionality.
+- **GEMINI_MODEL:** Specifies the configured Gemini model.
+- **GOOGLE_SHEETS_WEBHOOK_URL:** Optional Google Sheets synchronization endpoint.
+- **NGROK_AUTHTOKEN:** Optional token for public-tunnel functionality.
+
+The exact variable names and requirements should be confirmed in the current application code and `.env.example` file.
+
+## 11. API Endpoints
+
+The repository README describes these routes:
+
+### 11.1 GET /
+
+Serves the application's home page or main interface.
+
+### 11.2 GET /api/health
+
+Provides information about application health, database connectivity, and AI configuration status.
+
+### 11.3 POST /analyse
+
+Accepts financial information, such as income, expenses, savings goals, and optional expense logs. It processes the information and returns analysis results.
+
+### 11.4 POST /generate
+
+Provides a compatibility endpoint for focused financial questions or related input supported by the application.
+
+The exact request fields and response formats should be confirmed in `app.py`.
+
+## 12. Working Procedure
+
+The general workflow of the application is as follows:
+
+1. The user opens the application in a web browser.
+2. The user enters income and expense information.
+3. The user optionally provides a financial goal.
+4. The frontend sends the information to the Flask backend.
+5. The backend validates and processes the request.
+6. The application uses configured AI functionality or fallback logic.
+7. The system generates financial analysis and budgeting suggestions.
+8. The results are returned to the frontend.
+9. The user reviews the summary and uses it to plan future spending.
+
+## 13. Testing
+
+The following tests can be performed to evaluate the application:
+
+1. Verify that the application starts successfully.
+2. Check that the home page loads correctly.
+3. Test the health endpoint.
+4. Submit valid income and expense information.
+5. Test missing or invalid inputs.
+6. Check how the application handles negative or unusually large values.
+7. Test the fallback workflow when AI is unavailable.
+8. Verify database persistence where applicable.
+9. Test optional Google Sheets synchronization if configured.
+10. Check the interface on different screen sizes.
+11. Confirm that sensitive information is not exposed in logs or public files.
+
+Actual test results should be recorded after executing these tests.
+
+## 14. Security and Privacy
+
+Financial information is sensitive and must be handled carefully.
+
+Recommended security practices include:
+
+- Store API keys in environment variables.
+- Keep `.env` files and secrets out of version control.
+- Validate and sanitize user input.
+- Protect stored financial records from unauthorized access.
+- Use HTTPS for public deployments.
+- Review the privacy practices of third-party AI and cloud services.
+- Avoid using real banking credentials in a demonstration project.
+- Verify authentication, authorization, and user-data isolation before supporting multiple users.
+
+## 15. Limitations
+
+Potential limitations that should be considered include:
+
+1. AI-generated financial suggestions may be inaccurate or incomplete.
+2. Results depend on the accuracy of the information entered by users.
+3. AI functionality requires suitable configuration and network access.
+4. Optional cloud integrations may fail because of configuration or connectivity issues.
+5. The application's security and multi-user capabilities must be verified before storing real financial information.
+6. The application should not be treated as a replacement for professional financial advice.
+
+## 16. Future Enhancements
+
+The following improvements could be considered in future versions:
+
+- Interactive charts for income and expense trends.
+- Predictive expense analysis.
+- Savings-goal progress tracking.
+- Automatic recurring-expense detection.
+- Secure user registration and login.
+- Multi-month financial reports.
+- Export to PDF or Excel.
+- Improved mobile responsiveness.
+- Budget alerts and notifications.
+- More detailed financial health indicators.
+- Stronger privacy and access controls.
+
+## 17. Applications
+
+The project can be useful for:
+
+- Students managing monthly allowances.
+- Employees planning monthly expenses.
+- Individuals tracking savings goals.
+- Users who want to understand their spending habits.
+- Educational demonstrations of AI integration in web applications.
+
+## 18. Conclusion
+
+The Personal Finance Advisor Bot is an AI-assisted web application that brings income tracking, expense categorization, budget generation, spending analysis, and savings suggestions into one system.
+
+By combining Python, Flask, SQLAlchemy, SQLite, and optional Gemini AI integration, the project provides a foundation for developing a personal financial management tool.
+
+The application can be further improved through enhanced data visualization, predictive analytics, stronger security, and additional financial planning features.
+
+## 19. References
+
+1. GitHub Repository: https://github.com/ayushchavan0402-cmyk/Personal-Finance-advisor-bot
+2. Flask Documentation: https://flask.palletsprojects.com/
+3. SQLAlchemy Documentation: https://docs.sqlalchemy.org/
+4. Python Documentation: https://docs.python.org/3/
+5. Google AI for Developers: https://ai.google.dev/
+
+**Note:** This documentation is based on the repository's published description and intended functionality. Verify implementation details, API behavior, and test results against the current source code before submitting this document as a formal project report.
