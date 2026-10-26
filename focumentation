@@ -1,0 +1,534 @@
+📘 Personal Finance Advisor Bot — Comprehensive Technical Documentation
+1. System Overview & Architecture
+
+Personal Finance Advisor Bot is a production-grade, full-stack financial management and advisory platform. The system is engineered to provide end-to-end personal wealth tracking, automated financial health assessment, interactive data visualization, budget enforcement, and context-aware AI advisory capabilities.
+
+1.1 Architecture Diagram
+2. Database Schema & Data Models
+
+The persistence layer is implemented via SQLAlchemy ORM with foreign key constraints, cascade rules, indices, and unique composite keys.
+
+2.1 Entity Relationship (ER) Diagram
+2.2 Model Specifications
+User (backend/models/user.py)
+id (Integer, PK): Unique user identifier.
+name (String(120), Not Null): Full user name.
+email (String(120), Unique, Not Null, Indexed): Lowercased user login email.
+password_hash (String(255), Not Null): Cryptographic salted hash generated via werkzeug.security.generate_password_hash.
+currency (String(10), Default '₹'): Preferred currency symbol (e.g. ₹, $, €, £).
+created_at (DateTime): Registration UTC timestamp.
+Relationships: One-to-many relationship with all transactional entities (cascade="all, delete-orphan").
+Income (backend/models/income.py)
+id (Integer, PK): Unique income entry ID.
+user_id (Integer, FK users.id, Indexed): Tenant isolation key.
+amount (Float, Not Null): Numeric income value.
+source (String(80), Not Null): Income stream (e.g., Salary, Freelancing, Business, Scholarship, Investment, Other).
+date (Date, Not Null): Date when funds were received.
+description (String(255)): Transaction memo/context.
+Expense (backend/models/expense.py)
+id (Integer, PK): Unique expense entry ID.
+user_id (Integer, FK users.id, Indexed): Tenant isolation key.
+amount (Float, Not Null): Numeric expense value.
+category (String(80), Not Null): Expense category (Food, Transportation, Education, Shopping, Entertainment, Rent, Bills, Healthcare, Travel, Other).
+date (Date, Not Null): Date of expenditure.
+description (String(255)): Context or store/merchant memo.
+Budget (backend/models/budget.py)
+id (Integer, PK): Unique budget rule ID.
+user_id (Integer, FK users.id, Indexed): User identifier.
+category (String(80), Not Null): Target category.
+amount (Float, Not Null): Monthly ceiling limit.
+month (Integer, 1-12): Calendar month.
+year (Integer): Calendar year (e.g., 2026).
+Composite Unique Constraint: uq_user_cat_month_year(user_id, category, month, year) prevents duplicate budget allocations for identical categories within the same monthly cycle.
+SavingsGoal (backend/models/savings_goal.py)
+id (Integer, PK): Unique savings target ID.
+user_id (Integer, FK users.id, Indexed): User identifier.
+name (String(120), Not Null): Milestone title (e.g. "MacBook Pro", "Emergency Fund").
+target_amount (Float, Not Null): Target savings ceiling.
+current_amount (Float, Default 0.0): Accumulated balance.
+target_date (Date, Nullable): Estimated completion deadline.
+Computed Properties: Calculates progress_percent (
+(
+current
+/
+target
+)
+×
+100
+(current/target)×100) and remaining_amount (
+max
+⁡
+(
+0
+,
+target
+−
+current
+)
+max(0,target−current)).
+FinancialInsight (backend/models/financial_insight.py)
+id (Integer, PK): Unique insight ID.
+user_id (Integer, FK users.id, Indexed): User identifier.
+insight (Text, Not Null): AI-generated insight text.
+type (String(50)): Type indicator (warning, alert, achievement, tip, info).
+3. AI Financial Engine & Intelligence Architecture
+
+The AI module (backend/services/ai_service.py) employs a Hybrid Intelligence Architecture that merges deterministic heuristic rule engines with generative Large Language Models.
+
+3.1 Financial Calculation Heuristics
+
+Savings Rate Metric: 
+Savings Rate (%)
+=
+(
+max
+⁡
+(
+0
+,
+Total Income
+−
+Total Expenses
+)
+Total Income
+)
+×
+100
+Savings Rate (%)=(
+Total Income
+max(0,Total Income−Total Expenses)
+	​
+
+)×100
+
+≥
+20
+%
+≥20%: Classified as Healthy / Optimal Financial Discipline.
+<
+10
+%
+<10%: Triggers an automated Low Savings Warning.
+
+Budget Status Matrix: 
+Utilization (%)
+=
+(
+Spent Amount
+Allocated Budget
+)
+×
+100
+Utilization (%)=(
+Allocated Budget
+Spent Amount
+	​
+
+)×100
+
+Utilization
+≥
+100
+%
+Utilization≥100%: Status = Exceeded (Status badge danger, triggers overspending alarm).
+80
+%
+≤
+Utilization
+<
+100
+%
+80%≤Utilization<100%: Status = Warning (Status badge warning, cautionary notification).
+Utilization
+<
+80
+%
+Utilization<80%: Status = Healthy (Status badge success).
+
+50/30/20 Budget Auto-Generator Formula:
+
+Needs (50%):
+Rent & Housing: 
+25
+%
+25% of income
+Food & Groceries: 
+15
+%
+15% of income
+Utilities & Bills: 
+8
+%
+8% of income
+Healthcare: 
+2
+%
+2% of income
+Wants (30%):
+Shopping: 
+10
+%
+10% of income
+Entertainment: 
+8
+%
+8% of income
+Transportation: 
+7
+%
+7% of income
+Education/Upskilling: 
+5
+%
+5% of income
+Savings (20%): Retained for emergency buffer and savings goals.
+
+Month-over-Month (MoM) Anomaly Detection: 
+Δ
+%
+=
+(
+Current Month Spent
+−
+Previous Month Spent
+Previous Month Spent
+)
+×
+100
+Δ%=(
+Previous Month Spent
+Current Month Spent−Previous Month Spent
+	​
+
+)×100
+
+If 
+Δ
+%
+≥
+15
+%
+Δ%≥15% and 
+Current Month Spent
+>
+1
+,
+000
+Current Month Spent>1,000, an automated advisory alert highlights the specific category surge (e.g. "Your Food expenses jumped by 19% compared with last month").
+3.2 Supported Conversational Intents
+Intent Trigger	Handled Question Example	Output Strategy
+Monthly Spending	"How much did I spend this month?"	Exact outflow breakdown, top category share, cash on hand.
+Top Outflow Driver	"Where am I spending the most?"	Ranks top 5 spending categories with percentage share and optimization tips.
+Target Savings Plan	"How can I save ₹5,000 this month?"	Identifies discretionary categories and suggests specific proportional cuts.
+Expense Trend / Spikes	"Why are my expenses increasing?"	Compares current month with previous month to detect anomalies.
+50/30/20 Budget Blueprint	"Give me a budget for next month."	Generates customized category limits based on recorded earnings.
+Overspending Assessment	"Am I overspending?"	Inspects active category budgets, highlighting exceeded thresholds.
+Savings Capacity Calculation	"How much can I save based on my income?"	Projects 6-month, 1-year, and 3-year compound savings milestones.
+Executive Monthly Summary	"Give me a monthly financial summary."	Renders a clean Markdown table of inflows, outflows, and financial health status.
+4. Complete REST API Reference
+
+All API routes return a standardized JSON envelope:
+
+json
+{
+  "success": true,
+  "message": "Human-readable status",
+  "data": { ... },
+  "error": null
+}
+4.1 Authentication Endpoints (/api/auth)
+POST /api/auth/register
+Description: Registers a new user.
+Request Body:
+json
+{
+  "name": "Jane Doe",
+  "email": "jane@example.com",
+  "password": "securepassword123",
+  "seed_demo": true
+}
+Responses:
+201 Created: Returns user object and JWT bearer token.
+400 Bad Request: Validation failure (name length, invalid email, password < 6 chars).
+409 Conflict: Email already exists.
+POST /api/auth/login
+Description: Authenticates user credentials.
+Request Body:
+json
+{
+  "email": "jane@example.com",
+  "password": "securepassword123"
+}
+Responses:
+200 OK: Returns JWT access token and user metadata.
+401 Unauthorized: Invalid credentials.
+GET /api/auth/me
+Headers: Authorization: Bearer <token>
+Responses: 200 OK with user details.
+POST /api/auth/logout
+Responses: 200 OK.
+4.2 Dashboard Endpoint (/api/dashboard)
+GET /api/dashboard?month=9&year=2026
+Headers: Authorization: Bearer <token>
+Query Params: month (optional, default current), year (optional, default current).
+Response Payload (200 OK):
+json
+{
+  "success": true,
+  "data": {
+    "user": { "id": 1, "name": "Alex Morgan", "currency": "₹" },
+    "period": { "month": 9, "year": 2026, "month_name": "September" },
+    "summary": {
+      "monthly_income": 51000.0,
+      "total_expenses": 31500.0,
+      "current_balance": 19500.0,
+      "total_savings": 19500.0,
+      "savings_rate": 38.2,
+      "budget_used_percentage": 78.8,
+      "savings_goal_progress": 44.2
+    },
+    "charts": {
+      "history": [
+        { "label": "Apr 2026", "income": 40000.0, "expense": 28000.0, "savings": 12000.0 },
+        { "label": "Sep 2026", "income": 51000.0, "expense": 31500.0, "savings": 19500.0 }
+      ],
+      "categories": [
+        { "category": "Rent", "amount": 10000.0, "percentage": 31.7 },
+        { "category": "Food", "amount": 5000.0, "percentage": 15.9 }
+      ],
+      "budget_utilization": [
+        { "category": "Food", "budget_amount": 4500.0, "spent_amount": 5000.0, "is_exceeded": true }
+      ]
+    },
+    "alerts": [
+      { "type": "danger", "title": "Budget Exceeded: Food", "message": "⚠️ You have exceeded your Food budget by ₹500.00." }
+    ],
+    "insights": [
+      { "type": "warning", "title": "Primary Spending Driver", "message": "Your highest expense category in September was Rent..." }
+    ],
+    "recent_transactions": [ ... ]
+  }
+}
+4.3 Income Endpoints (/api/income)
+GET /api/income:
+Parameters: search, source, start_date, end_date.
+Returns array of income records, total aggregate sum, and count.
+POST /api/income:
+Body: { "amount": 45000, "source": "Salary", "date": "2026-09-01", "description": "Tech Consultant" }
+GET /api/income/<id>: Retrieves single entry.
+PUT /api/income/<id>: Updates fields of specified income.
+DELETE /api/income/<id>: Removes entry.
+4.4 Expense Endpoints (/api/expenses)
+GET /api/expenses:
+Parameters: search, category, start_date, end_date.
+Returns array of expense records, total amount, and valid category list.
+POST /api/expenses:
+Body: { "amount": 2800, "category": "Food", "date": "2026-09-10", "description": "Supermarket" }
+GET /api/expenses/<id>: Retrieves expense entry.
+PUT /api/expenses/<id>: Modifies existing expense.
+DELETE /api/expenses/<id>: Deletes expense.
+4.5 Budget Endpoints (/api/budgets)
+GET /api/budgets?month=9&year=2026:
+Returns category budget comparison, actual spending per category, remaining balances, and threshold flags.
+POST /api/budgets:
+Body: { "category": "Food", "amount": 5000, "month": 9, "year": 2026 }
+Creates or updates category ceiling.
+POST /api/budgets/auto-generate:
+Body: { "month": 9, "year": 2026 }
+Generates balanced 50/30/20 budget allocations using recorded income.
+PUT /api/budgets/<id>: Modifies budget amount or category.
+DELETE /api/budgets/<id>: Removes budget rule.
+4.6 Savings Goals Endpoints (/api/savings-goals)
+GET /api/savings-goals:
+Returns all goals, progress percentage, total accumulated funds, and target sum.
+POST /api/savings-goals:
+Body: { "name": "Emergency Fund", "target_amount": 100000, "current_amount": 35000, "target_date": "2026-12-31" }
+POST /api/savings-goals/<id>/deposit:
+Body: { "amount": 5000 }
+Increments goal current balance.
+PUT /api/savings-goals/<id>: Modifies goal parameters.
+DELETE /api/savings-goals/<id>: Deletes goal.
+4.7 Transactions & Export (/api/transactions)
+GET /api/transactions:
+Parameters: type (all | income | expense), search, category, start_date, end_date, sort_by (date | amount), sort_order (asc | desc), page (default 1), per_page (default 10).
+Returns paginated unified ledger and filtered totals.
+GET /api/transactions/export:
+Downloads full financial ledger formatted as standard comma-separated values (text/csv).
+4.8 Monthly Reports (/api/reports/monthly)
+GET /api/reports/monthly?month=9&year=2026:
+Generates an executive analytical report including:
+Period metadata and cash flow summary
+Month-over-month growth comparisons for income and expenses
+Expense category percentage shares
+Category shift variance (spikes and drops)
+Automated executive narrative recommendations
+4.9 AI Advisor (/api/ai)
+POST /api/ai/chat:
+Body: { "message": "How can I save ₹5,000 this month?" }
+Passes real user records to the AI service and returns markdown answer with required disclaimer.
+GET /api/ai/insights:
+Returns recent persisted automated insight entries.
+4.10 User Profile & Data Controls (/api/user)
+PUT /api/user/profile: Updates display name and preferred currency symbol.
+PUT /api/user/password: Verifies current password and updates to new password.
+POST /api/user/seed-demo: Loads realistic sample financial records.
+POST /api/user/reset-data: Clears all financial entries for the active user.
+5. Frontend Architecture & UI/UX Design System
+
+The client side is implemented in vanilla ECMAScript (ES6+) with zero heavyweight bundler dependencies, ensuring fast page load times and maintainability.
+
+5.1 Modular Frontend Structure
+frontend/
+├── index.html           # Landing Showcase Page
+├── login.html           # Authentication Page with Quick Demo Fill
+├── register.html        # Registration with Seed Toggle
+├── dashboard.html       # Primary Financial Control Center
+├── income.html          # Income CRUD & Filter Module
+├── expenses.html        # Expense CRUD & Category Module
+├── budgets.html         # 50/30/20 Budgeting & Visual Indicators
+├── savings.html         # Milestone Tracking & Deposits
+├── transactions.html    # Unified Ledger & CSV Export
+├── advisor.html         # Interactive AI Chatroom & Chips
+├── reports.html         # Executive Printable Report
+├── profile.html         # User Preferences & Demo Tools
+├── css/
+│   └── style.css        # Custom Properties, Glassmorphism, Responsive Grid
+└── js/
+    ├── api.js           # Fetch wrapper, Token Handler, Toast Alerts
+    ├── auth.js          # Authentication form handlers
+    ├── theme.js         # Dark/Light Theme Controller
+    ├── layout.js        # Global Sidebar, Header, Dynamic Alerts
+    ├── dashboard.js     # Chart.js instances & KPI rendering
+    ├── income.js        # Income controller with search debounce
+    ├── expenses.js      # Expense controller with category breakdown
+    ├── budgets.js       # Budget progress meters & auto-generation
+    ├── savings.js       # Savings goals countdown & deposit modal
+    ├── transactions.js  # Ledger pagination & CSV downloader
+    ├── advisor.js       # AI Chatroom & Markdown Parser
+    ├── reports.js       # Report charts & MoM variance table
+    └── profile.js       # Settings & Seeder actions
+5.2 Design Tokens & Themes
+
+The design system is governed by CSS custom properties in frontend/css/style.css:
+
+css
+:root {
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --bg-card: #ffffff;
+  --border-color: #e2e8f0;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --primary: #4f46e5;       /* Indigo 600 */
+  --success: #10b981;       /* Emerald 500 */
+  --warning: #f59e0b;       /* Amber 500 */
+  --danger: #ef4444;        /* Rose 500 */
+  --info: #0ea5e9;          /* Sky 500 */
+}
+[data-theme="dark"] {
+  --bg-primary: #0b0f19;    /* Midnight Navy */
+  --bg-secondary: #111827;  /* Deep Slate */
+  --bg-card: #141e33;       /* Elevated Card Dark */
+  --border-color: #1e293b;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --primary: #6366f1;       /* Light Indigo */
+}
+6. Security & Multi-Tenancy Architecture
+
+Cryptographic Password Storage: Passwords undergo salted PBKDF2 hashing via werkzeug.security. Plaintext passwords are never logged or stored.
+
+Row-Level Tenant Isolation: Every database query filters strictly by user_id = current_user_id parsed from the validated JWT token:
+
+python
+Income.query.filter_by(user_id=user_id).all()
+
+Users cannot query, modify, or delete another user's records.
+
+Protection Against SQL Injections: All database operations utilize SQLAlchemy's abstract syntax trees and parameterized bindings.
+
+Session Lifetime & Revocation: JWT access tokens are issued with a 7-day expiration time (JWT_ACCESS_TOKEN_EXPIRES). Expired tokens result in a clean client-side logout and redirect.
+
+7. Setup, Deployment & Operations
+7.1 Local Development Setup
+
+Clone / Navigate to Repository:
+
+powershell
+cd "c:\Users\VM TECH STORE\OneDrive\Desktop\AI ADVISOR"
+
+Activate Virtual Environment:
+
+powershell
+.\venv\Scripts\Activate.ps1
+
+Install Dependencies:
+
+powershell
+pip install -r requirements.txt
+
+Configure Environment (.env):
+
+ini
+FLASK_APP=backend/app.py
+FLASK_ENV=development
+SECRET_KEY=your-secure-random-secret-key
+JWT_SECRET_KEY=your-secure-random-jwt-key
+DATABASE_URL=sqlite:///database/finance_advisor.db
+PORT=5000
+
+Start Flask Server:
+
+powershell
+.\venv\Scripts\python backend/app.py
+
+Access at http://localhost:5000.
+
+7.2 Production Deployment (Linux / Docker / Gunicorn)
+
+For production deployment on Linux / AWS / DigitalOcean:
+
+Database Switch (PostgreSQL): In .env:
+
+ini
+DATABASE_URL=postgresql://dbuser:securepass@localhost:5432/finance_db
+
+(SQLAlchemy automatically creates all tables on initial startup).
+
+Run with Production WSGI Server (Gunicorn):
+
+bash
+pip install gunicorn psycopg2-binary
+gunicorn -w 4 -b 0.0.0.0:5000 "backend.app:create_app()"
+
+Reverse Proxy Configuration (Nginx):
+
+nginx
+server {
+    listen 80;
+    server_name finance.yourdomain.com;
+    location / {
+        proxy_pass http://127.0.0.1:5000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+}
+8. Automated Test Suite Execution
+
+A comprehensive test suite verifies authentication, CRUD workflows, AI queries, and CSV exports:
+
+powershell
+.\venv\Scripts\python -m unittest backend/tests/test_app.py
+Verified Test Cases:
+test_01_auth_flow: Registration, password hashing, and JWT token exchange.
+test_02_income_and_expense_crud: Ingestion, retrieval, filtering, and deletion.
+test_03_budget_and_savings_flow: Budget analysis calculation and savings goal fund deposits.
+test_04_ai_advisor_chat: Natural language query analysis and disclaimer verification.
+test_05_reports_and_transactions_csv: MoM analytical reports and CSV export format.
+9. Default Demo Account Reference
+Key	Value
+Email	demo@financeadvisor.com
+Password	password123
+Profile Name	Alex Morgan
+Pre-loaded Data	3 Incomes (₹51,000), 8 Current Month Expenses (₹31,500), 7 Prior Month Expenses, 8 Category Budgets, 3 Savings Goals, 3 AI Insights
